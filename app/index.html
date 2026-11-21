@@ -1,91 +1,67 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ViceCover Studio — GTA-Style Cover Art Maker</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a0a14'/%3E%3Ctext x='16' y='24' font-family='Arial Black, sans-serif' font-size='20' font-weight='900' fill='%23ff2e88' text-anchor='middle'%3EV%3C/text%3E%3C/svg%3E">
+<title>ViceCover Studio</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23e8365d'/%3E%3Ctext x='16' y='24' font-size='20' font-family='Arial' font-weight='900' fill='white' text-anchor='middle'%3EV%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-<header class="topbar">
-  <div class="brand">
-    <div class="brand-mark">V</div>
-    <div>
-      <div class="brand-name">VICECOVER <span>STUDIO</span></div>
-      <div class="brand-tag">GTA-STYLE COVER ART MAKER</div>
+<main class="app">
+  <section class="controls">
+    <h1>ViceCover Studio</h1>
+    <p class="tagline">Build a GTA-style multi-panel cover from your photos.</p>
+
+    <div class="group">
+      <span class="group-label">Photos</span>
+      <label class="file-pick">Add photos <input id="photo" type="file" accept="image/*" multiple></label>
+      <div id="tray" class="tray" aria-label="Photo tray"></div>
+      <p class="hint">Tip: drop files anywhere on the window, or paste from the clipboard. Click a panel on the cover, then a tray item, to place it.</p>
     </div>
-  </div>
-  <div class="top-actions">
-    <div class="size-group" id="sizeGroup" role="group" aria-label="Export size"></div>
-    <button id="exportTop" class="btn-export" type="button">EXPORT PNG</button>
-  </div>
-</header>
 
-<main class="workspace">
-  <aside class="controls">
-    <section class="panel-box">
-      <h2>1 · Photo</h2>
-      <label class="dropzone" id="dropzone">
-        <input type="file" id="fileInput" accept="image/*" multiple hidden>
-        <strong>Drop a photo here</strong>
-        <span>or click to browse — photos never leave your machine</span>
-      </label>
-      <div class="tray" id="tray"></div>
-      <p class="hint">Click a picture, then it fills the selected panel. Add as many as you like — one per panel.</p>
-    </section>
+    <div class="group">
+      <span class="group-label">Layout</span>
+      <div id="layouts" class="chip-row"></div>
+    </div>
 
-    <section class="panel-box">
-      <h2>2 · Layout</h2>
-      <div class="layout-grid" id="layoutGrid"></div>
-    </section>
+    <div class="group">
+      <span class="group-label">Selected panel</span>
+      <p id="panel-name" class="panel-name">Panel 1</p>
+      <label>Focus X <input id="focus-x" type="range" min="0" max="100" value="50"></label>
+      <label>Focus Y <input id="focus-y" type="range" min="0" max="100" value="50"></label>
+      <label>Zoom <input id="zoom" type="range" min="100" max="300" value="100"></label>
+      <button id="recenter" type="button">Re-center panel</button>
+    </div>
 
-    <section class="panel-box">
-      <h2>3 · Panel <span class="sel-label" id="selLabel"></span></h2>
-      <label class="slider-row">Zoom <input type="range" id="zoom" min="100" max="300" value="100"></label>
-      <label class="slider-row">Focus X <input type="range" id="focusX" min="0" max="100" value="50"></label>
-      <label class="slider-row">Focus Y <input type="range" id="focusY" min="0" max="100" value="50"></label>
-      <button class="btn-ghost" id="centerBtn" type="button">Center panel</button>
-      <p class="hint">Tip: drag the picture right on the cover to position it; scroll to zoom.</p>
-    </section>
+    <div class="group">
+      <span class="group-label">Colour grade</span>
+      <div id="grades" class="chip-row"></div>
+      <label>Grade strength <input id="grade-strength" type="range" min="0" max="100" value="85"></label>
+      <label class="check">Vignette <input id="vignette" type="checkbox" checked></label>
+    </div>
 
-    <section class="panel-box">
-      <h2>4 · Colour grade</h2>
-      <div class="chip-row" id="gradeRow"></div>
-      <label class="slider-row">Strength <input type="range" id="strength" min="0" max="100" value="85"></label>
-      <label class="check-row"><input type="checkbox" id="vignette" checked> Vignette</label>
-    </section>
+    <div class="group">
+      <span class="group-label">Lettering</span>
+      <label>Title <input id="title" type="text" maxlength="30" value="VICE COVER"></label>
+      <label>Subtitle <input id="subtitle" type="text" maxlength="40" value="Tales from the Coast"></label>
+      <label>Caption bar <input id="caption" type="text" maxlength="48" value="One city. Every story."></label>
+      <label>Badge <input id="badge" type="text" maxlength="18" value="NEW"></label>
+      <label class="check">Platform strip <input id="strip-on" type="checkbox" checked></label>
+      <label>Strip text <input id="strip-text" type="text" maxlength="40" value="VICE CITY EDITION"></label>
+    </div>
 
-    <section class="panel-box">
-      <h2>5 · Lettering</h2>
-      <label class="field">Game title <input type="text" id="titleText" value="VICE HEAT" maxlength="24"></label>
-      <label class="field">Subtitle <input type="text" id="subtitleText" value="LEONIDA" maxlength="30"></label>
-      <label class="field">Caption <input type="text" id="captionText" value="WELCOME BACK TO NEON CITY" maxlength="48"></label>
-      <label class="field">Badge <input type="text" id="tagText" value="EST. 2026" maxlength="12"></label>
-      <label class="check-row"><input type="checkbox" id="stripOn"> Platform strip</label>
-      <label class="field">Strip text <input type="text" id="stripText" value="NEXT-GEN EDITION" maxlength="30"></label>
-    </section>
-
-    <section class="panel-box">
-      <h2>6 · Export</h2>
-      <div class="size-list" id="sizeList"></div>
-      <button class="btn-export wide" id="exportBtn" type="button">EXPORT PNG</button>
-      <p class="hint">One click — the cover is already rendered at full poster resolution.</p>
-    </section>
-  </aside>
-
+    <div class="group">
+      <span class="group-label">Export</span>
+      <div id="sizes" class="chip-row"></div>
+      <button id="export" type="button">Export PNG</button>
+      <p id="status" role="status"></p>
+    </div>
+  </section>
   <section class="stage">
-    <div class="canvas-wrap" id="canvasWrap">
-      <canvas id="cover" width="1080" height="1350"></canvas>
-    </div>
-    <div class="status" id="statusLine"></div>
+    <canvas id="cover" width="1080" height="1350" aria-label="The cover being built"></canvas>
   </section>
 </main>
-
-<footer class="foot">
-  Fan-made tool. Not affiliated with Rockstar Games. Every picture is drawn and graded locally in your browser — nothing is uploaded.
-</footer>
-
 <script type="module" src="./src/main.js"></script>
 </body>
 </html>

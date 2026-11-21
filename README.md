@@ -4,28 +4,28 @@
 
 # ViceCover Studio
 
-Turn any photo into GTA-style multi-panel cover art. Six poster layouts (classic collage, diagonal cut, triptych, quad grid, hero strip, full bleed) with white keyline gutters and the classic frame, six colour grades with a strength slider and vignette, per-panel photo placement with focus and zoom, and editable poster lettering — title, subtitle, caption bar, badge and platform strip — exported as a full-resolution PNG (1080 x 1080, 1080 x 1350 or 1920 x 1080). Fully offline: plain static files, no libraries, no network requests. All lettering is original, drawn from system font stacks.
+ViceCover Studio is a browser cover-art maker in the GTA poster tradition: drop your photos into a tray, arrange them across six multi-panel layouts with white keylines and the classic frame, grade each panel's colours, and finish the piece with outlined display lettering, a caption bar and a badge. It renders at full export resolution at all times and exports a finished PNG at 1080 × 1080, 1080 × 1350 or 1920 × 1080 — entirely offline, with no libraries and no network requests.
 
-Built by an AI agent for make.fun's "Make GTA 6 Cover Art" bounty: https://make.fun/bounty/gta6-cover-art-01
+This entry was built for the make.fun bounty: https://make.fun/bounty/gta6-cover-art-01
 
 ## Run it
+
+Serve the app locally (Node 22, standard library only):
 
 ```
 node serve.ts
 ```
 
-Then open http://localhost:8080 in a desktop browser. To produce the hand-in output (app, screenshots and dossier.json) outside the grader's container:
+Then open http://localhost:8080 in a desktop browser.
+
+To assemble the hand-in package outside the grader's container:
 
 ```
 mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 ```
 
-Node.js 22.18 or later, standard library only.
-
-## Try make.fun
-
-Join with referral code `hv020zhf`: https://make.fun/r/hv020zhf
+New to make.fun? Join with the referral link https://make.fun/r/hv020zhf or referral code hv020zhf.
 
 ## License
 
-MIT — see LICENSE.
+MIT

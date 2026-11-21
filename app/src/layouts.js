@@ -1,168 +1,128 @@
-// layouts.js — panel geometry for the GTA-style multi-panel cover grid.
+// ViceCover Studio — panel layout geometry.
 //
-// Every layout is a list of panels in unit space (0..1 on both axes), each
-// panel a polygon. Rectangles are four-point polygons; the diagonal layout
-// uses slanted cuts and a triangle, like the classic game-cover collages.
-// The renderer clips each photo to its polygon, so any photo can fill any
-// panel. Pure geometry only — no DOM — so it can be unit-tested in Node.
+// Every layout is a list of panels in normalised cover space: coordinates run
+// 0..1 on both axes, so the same layout works at any export resolution. A
+// panel is a polygon (three or more [x, y] corners, wound clockwise) plus a
+// `hero` flag the editor uses when it needs a sensible default panel to fill
+// first. The renderer scales these unit polygons to the real canvas.
 
-export function rect(x, y, w, h) {
-  return [
-    [x, y],
-    [x + w, y],
-    [x + w, y + h],
-    [x, y + h],
-  ];
-}
-
+/** The six poster layouts, in the order the editor's picker shows them. */
 export const LAYOUTS = [
   {
-    id: "classic",
-    name: "Classic Collage",
+    id: 'collage',
+    name: 'Classic Collage',
     panels: [
-      rect(0.0, 0.0, 0.6, 0.56), // hero
-      rect(0.6, 0.0, 0.4, 0.3),
-      rect(0.6, 0.3, 0.4, 0.26),
-      rect(0.0, 0.56, 0.34, 0.44),
-      rect(0.34, 0.56, 0.29, 0.44),
-      rect(0.63, 0.56, 0.37, 0.44),
+      { hero: true, poly: [[0, 0], [0.62, 0], [0.62, 0.58], [0, 0.58]] },
+      { poly: [[0.62, 0], [1, 0], [1, 0.58], [0.62, 0.58]] },
+      { poly: [[0, 0.58], [0.34, 0.58], [0.34, 1], [0, 1]] },
+      { poly: [[0.34, 0.58], [0.67, 0.58], [0.67, 1], [0.34, 1]] },
+      { poly: [[0.67, 0.58], [1, 0.58], [1, 1], [0.67, 1]] },
     ],
   },
   {
-    id: "diagonal",
-    name: "Diagonal Cut",
+    id: 'diagonal',
+    name: 'Diagonal Cut',
     panels: [
-      [
-        [0, 0],
-        [0.58, 0],
-        [0.46, 0.52],
-        [0, 0.52],
-      ],
-      [
-        [0.58, 0],
-        [1, 0],
-        [1, 0.52],
-        [0.46, 0.52],
-      ],
-      [
-        [0, 0.52],
-        [0.46, 0.52],
-        [0.38, 1],
-        [0, 1],
-      ],
-      [
-        [0.46, 0.52],
-        [1, 0.52],
-        [1, 1],
-        [0.68, 1],
-      ],
-      [
-        [0.46, 0.52],
-        [0.68, 1],
-        [0.38, 1],
-      ],
+      { hero: true, poly: [[0, 0], [1, 0], [0.58, 0.52], [0, 0.38]] },
+      { poly: [[1, 0], [1, 0.55], [0.58, 0.52]] },
+      { poly: [[0, 0.38], [0.58, 0.52], [0.42, 1], [0, 1]] },
+      { poly: [[0.58, 0.52], [1, 0.55], [1, 1], [0.42, 1]] },
     ],
   },
   {
-    id: "triptych",
-    name: "Triptych",
+    id: 'triptych',
+    name: 'Triptych',
     panels: [
-      [
-        [0, 0],
-        [0.36, 0],
-        [0.32, 1],
-        [0, 1],
-      ],
-      [
-        [0.36, 0],
-        [0.68, 0],
-        [0.66, 1],
-        [0.32, 1],
-      ],
-      [
-        [0.68, 0],
-        [1, 0],
-        [1, 1],
-        [0.66, 1],
-      ],
+      { poly: [[0, 0], [0.34, 0], [0.34, 1], [0, 1]] },
+      { hero: true, poly: [[0.34, 0], [0.67, 0], [0.67, 1], [0.34, 1]] },
+      { poly: [[0.67, 0], [1, 0], [1, 1], [0.67, 1]] },
     ],
   },
   {
-    id: "quad",
-    name: "Quad Grid",
+    id: 'quad',
+    name: 'Quad Grid',
     panels: [
-      rect(0, 0, 0.5, 0.5),
-      rect(0.5, 0, 0.5, 0.5),
-      rect(0, 0.5, 0.5, 0.5),
-      rect(0.5, 0.5, 0.5, 0.5),
+      { hero: true, poly: [[0, 0], [0.5, 0], [0.5, 0.5], [0, 0.5]] },
+      { poly: [[0.5, 0], [1, 0], [1, 0.5], [0.5, 0.5]] },
+      { poly: [[0, 0.5], [0.5, 0.5], [0.5, 1], [0, 1]] },
+      { poly: [[0.5, 0.5], [1, 0.5], [1, 1], [0.5, 1]] },
     ],
   },
   {
-    id: "strip",
-    name: "Hero Strip",
+    id: 'hero-strip',
+    name: 'Hero & Strip',
     panels: [
-      rect(0, 0, 1, 0.54),
-      rect(0, 0.54, 0.34, 0.46),
-      rect(0.34, 0.54, 0.33, 0.46),
-      rect(0.67, 0.54, 0.33, 0.46),
+      { hero: true, poly: [[0, 0], [1, 0], [1, 0.7], [0, 0.7]] },
+      { poly: [[0, 0.7], [0.34, 0.7], [0.34, 1], [0, 1]] },
+      { poly: [[0.34, 0.7], [0.67, 0.7], [0.67, 1], [0.34, 1]] },
+      { poly: [[0.67, 0.7], [1, 0.7], [1, 1], [0.67, 1]] },
     ],
   },
   {
-    id: "hero",
-    name: "Full Bleed",
-    panels: [rect(0, 0, 1, 1)],
+    id: 'full-bleed',
+    name: 'Full Bleed',
+    panels: [
+      { hero: true, poly: [[0, 0], [1, 0], [1, 1], [0, 1]] },
+    ],
   },
 ];
 
+/** Look a layout up by id; falls back to the first layout for unknown ids. */
 export function layoutById(id) {
-  for (const lay of LAYOUTS) {
-    if (lay.id === id) return lay;
-  }
-  return LAYOUTS[0];
+  return LAYOUTS.find((layout) => layout.id === id) ?? LAYOUTS[0];
 }
 
-export function panelBBox(poly) {
-  let minX = 1,
-    minY = 1,
-    maxX = 0,
-    maxY = 0;
-  for (const pt of poly) {
-    if (pt[0] < minX) minX = pt[0];
-    if (pt[1] < minY) minY = pt[1];
-    if (pt[0] > maxX) maxX = pt[0];
-    if (pt[1] > maxY) maxY = pt[1];
-  }
-  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+/** Index of the layout's hero panel (0 when none is flagged). */
+export function heroIndex(layout) {
+  const at = layout.panels.findIndex((panel) => panel.hero);
+  return at === -1 ? 0 : at;
 }
 
-export function pointInPoly(px, py, poly) {
+/** Axis-aligned bounds of a unit polygon: {x, y, w, h} in 0..1 space. */
+export function panelBounds(panel) {
+  let left = Infinity;
+  let top = Infinity;
+  let right = -Infinity;
+  let bottom = -Infinity;
+  for (const [x, y] of panel.poly) {
+    if (x < left) left = x;
+    if (y < top) top = y;
+    if (x > right) right = x;
+    if (y > bottom) bottom = y;
+  }
+  return { x: left, y: top, w: right - left, h: bottom - top };
+}
+
+/** Centre of a panel's bounds — handy for labels and hit-test fallbacks. */
+export function panelCentre(panel) {
+  const b = panelBounds(panel);
+  return { x: b.x + b.w / 2, y: b.y + b.h / 2 };
+}
+
+/**
+ * Point-in-polygon test (even-odd ray cast) in unit space. The editor uses it
+ * to pick the panel under the pointer; the renderer uses it for nothing, it
+ * clips with the canvas path instead.
+ */
+export function pointInPanel(panel, x, y) {
+  const poly = panel.poly;
   let inside = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const xi = poly[i][0],
-      yi = poly[i][1];
-    const xj = poly[j][0],
-      yj = poly[j][1];
-    if (
-      yi > py !== yj > py &&
-      px < ((xj - xi) * (py - yi)) / (yj - yi) + xi
-    ) {
-      inside = !inside;
-    }
+    const [xi, yi] = poly[i];
+    const [xj, yj] = poly[j];
+    const crosses = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+    if (crosses) inside = !inside;
   }
   return inside;
 }
 
-// Cover-fit: scale the image so it covers the box (bw x bh), then place
-// it by focus point (fx, fy in 0..1: 0 pins the left/top edges of the
-// overflow, 1 pins the right/bottom). zoom multiplies the cover scale.
-export function coverFit(iw, ih, bw, bh, fx, fy, zoom) {
-  const scale = Math.max(bw / iw, bh / ih) * (zoom || 1);
-  const dw = iw * scale;
-  const dh = ih * scale;
-  return {
-    dx: (bw - dw) * fx,
-    dy: (bh - dh) * fy,
-    dw,
-    dh,
-  };
+/** Trace a panel polygon onto a context already scaled to canvas pixels. */
+export function tracePanel(ctx, panel, width, height) {
+  const poly = panel.poly;
+  ctx.beginPath();
+  ctx.moveTo(poly[0][0] * width, poly[0][1] * height);
+  for (let i = 1; i < poly.length; i++) {
+    ctx.lineTo(poly[i][0] * width, poly[i][1] * height);
+  }
+  ctx.closePath();
 }

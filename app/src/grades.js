@@ -1,135 +1,130 @@
-// grades.js — colour grades for the cover panels.
+// ViceCover Studio — colour grades.
 //
-// Each grade is a pure per-pixel function (r, g, b) -> [r, g, b], in the
-// spirit of the Vice City sunset / neon poster look. applyGrade() walks an
-// ImageData once and blends the graded pixel with the original by the
-// strength slider (0..1). Pure math only — no DOM — so it can be
-// unit-tested in Node with a fake ImageData.
+// A grade is a small function that maps one pixel (r, g, b in 0..255) to a
+// new pixel. The engine runs the chosen grade over an ImageData buffer, then
+// blends the graded pixels back toward the originals by the strength slider,
+// so strength 0 is always the untouched image and 1 is the full look. Every
+// grade here is a pure function of its input — no randomness, no state — which
+// keeps renders (and screenshots) perfectly repeatable.
 
-function clamp(v) {
-  return v < 0 ? 0 : v > 255 ? 255 : v;
+const clamp255 = (v) => (v < 0 ? 0 : v > 255 ? 255 : v);
+
+/** Perceived luminance, Rec. 601 weights — good enough for poster work. */
+function luminance(r, g, b) {
+  return 0.299 * r + 0.587 * g + 0.114 * b;
 }
 
-export function luma(r, g, b) {
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-
-export function saturate(r, g, b, s) {
-  const l = luma(r, g, b);
-  return [l + (r - l) * s, l + (g - l) * s, l + (b - l) * s];
-}
-
-export function contrast(r, g, b, c) {
+/** Push each channel away from (or toward) the pixel's own grey. */
+function saturate(r, g, b, amount) {
+  const grey = luminance(r, g, b);
   return [
-    (r - 128) * c + 128,
-    (g - 128) * c + 128,
-    (b - 128) * c + 128,
+    grey + (r - grey) * amount,
+    grey + (g - grey) * amount,
+    grey + (b - grey) * amount,
   ];
 }
 
-function mix(a, b, t) {
-  return a + (b - a) * t;
+/** S-curve contrast around mid-grey; k in roughly -1..1. */
+function contrast(r, g, b, k) {
+  const f = (v) => {
+    const n = v / 255;
+    const curved = n + k * n * (1 - n) * (n - 0.5) * 4;
+    return curved * 255;
+  };
+  return [f(r), f(g), f(b)];
 }
 
+/** Add a colour wash whose weight follows luminance: shadows or highlights. */
+function tint(r, g, b, colour, weight, onHighlights) {
+  const lum = luminance(r, g, b) / 255;
+  const w = weight * (onHighlights ? lum * lum : (1 - lum) * (1 - lum));
+  return [
+    r + (colour[0] - r) * w,
+    g + (colour[1] - g) * w,
+    b + (colour[2] - b) * w,
+  ];
+}
+
+/** Warm sunset: amber highlights, plum shadows, lifted saturation. */
+function gradeSunset(r, g, b) {
+  let [nr, ng, nb] = saturate(r, g, b, 1.22);
+  [nr, ng, nb] = tint(nr, ng, nb, [255, 176, 92], 0.34, true);
+  [nr, ng, nb] = tint(nr, ng, nb, [66, 32, 92], 0.3, false);
+  [nr, ng, nb] = contrast(nr, ng, nb, 0.12);
+  return [nr, ng, nb];
+}
+
+/** Neon: cyan shadows against magenta light, colours turned up hard. */
+function gradeNeon(r, g, b) {
+  let [nr, ng, nb] = saturate(r, g, b, 1.45);
+  [nr, ng, nb] = tint(nr, ng, nb, [24, 190, 220], 0.36, false);
+  [nr, ng, nb] = tint(nr, ng, nb, [255, 64, 170], 0.32, true);
+  [nr, ng, nb] = contrast(nr, ng, nb, 0.18);
+  return [nr, ng, nb];
+}
+
+/** Poster: quantise to a handful of levels, then strong contrast + colour. */
+function gradePoster(r, g, b) {
+  const levels = 5;
+  const snap = (v) => Math.round((v / 255) * (levels - 1)) / (levels - 1) * 255;
+  let [nr, ng, nb] = contrast(snap(r), snap(g), snap(b), 0.22);
+  [nr, ng, nb] = saturate(nr, ng, nb, 1.3);
+  return [nr, ng, nb];
+}
+
+/** Golden: honeyed mid-tones, gentle glow in the highlights, soft contrast. */
+function gradeGolden(r, g, b) {
+  let [nr, ng, nb] = tint(r, g, b, [246, 196, 96], 0.26, true);
+  [nr, ng, nb] = tint(nr, ng, nb, [120, 78, 30], 0.16, false);
+  [nr, ng, nb] = saturate(nr, ng, nb, 1.12);
+  [nr, ng, nb] = contrast(nr, ng, nb, 0.06);
+  return [nr + 6, ng + 3, nb - 4];
+}
+
+/** Noir: near-monochrome, crushed blacks, one cold wash over everything. */
+function gradeNoir(r, g, b) {
+  let [nr, ng, nb] = saturate(r, g, b, 0.22);
+  [nr, ng, nb] = contrast(nr, ng, nb, 0.3);
+  [nr, ng, nb] = tint(nr, ng, nb, [70, 92, 120], 0.18, false);
+  const floor = 10;
+  return [
+    floor + (nr - floor) * 0.94,
+    floor + (ng - floor) * 0.94,
+    floor + (nb - floor) * 0.97,
+  ];
+}
+
+/** The grade catalogue, in picker order. `fn: null` means "no grade". */
 export const GRADES = [
-  {
-    id: "vice",
-    name: "Vice Sunset",
-    fn(r, g, b) {
-      let p = contrast(r, g, b, 1.1);
-      p = saturate(p[0], p[1], p[2], 1.38);
-      const l = luma(p[0], p[1], p[2]) / 255;
-      // Split tone: pink shadows, teal highlights, warm overall cast.
-      const sr = mix(255, 64, l),
-        sg = mix(110, 224, l),
-        sb = mix(180, 208, l);
-      return [
-        mix(p[0] * 1.05, sr, 0.14),
-        mix(p[1], sg, 0.12),
-        mix(p[2] * 0.94, sb, 0.14),
-      ];
-    },
-  },
-  {
-    id: "neon",
-    name: "Neon Nights",
-    fn(r, g, b) {
-      const t = luma(r, g, b) / 255;
-      let dr, dg, db;
-      if (t < 0.5) {
-        const u = t / 0.5;
-        dr = mix(16, 178, u);
-        dg = mix(6, 44, u);
-        db = mix(64, 196, u);
-      } else {
-        const v = (t - 0.5) / 0.5;
-        dr = mix(178, 72, v);
-        dg = mix(44, 240, v);
-        db = mix(196, 255, v);
-      }
-      // Keep a slice of the original colour so faces stay readable.
-      return [mix(dr, r, 0.22), mix(dg, g, 0.22), mix(db, b, 0.22)];
-    },
-  },
-  {
-    id: "poster",
-    name: "Poster Pop",
-    fn(r, g, b) {
-      let p = saturate(r, g, b, 1.3);
-      p = contrast(p[0], p[1], p[2], 1.08);
-      const levels = 5;
-      return [
-        Math.round((p[0] / 255) * (levels - 1)) * (255 / (levels - 1)),
-        Math.round((p[1] / 255) * (levels - 1)) * (255 / (levels - 1)),
-        Math.round((p[2] / 255) * (levels - 1)) * (255 / (levels - 1)),
-      ];
-    },
-  },
-  {
-    id: "golden",
-    name: "Golden Hour",
-    fn(r, g, b) {
-      const p = saturate(r * 1.1, g * 1.02, b * 0.82, 1.15);
-      return [p[0] * 0.92 + 14, p[1] * 0.92 + 12, p[2] * 0.92 + 8];
-    },
-  },
-  {
-    id: "noir",
-    name: "Midnight Noir",
-    fn(r, g, b) {
-      const l = luma(r, g, b);
-      const p = contrast(l, l, l, 1.32);
-      return [p[0] * 0.96, p[1], p[2] * 1.05];
-    },
-  },
-  {
-    id: "none",
-    name: "Original",
-    fn(r, g, b) {
-      return [r, g, b];
-    },
-  },
+  { id: 'original', name: 'Original', fn: null },
+  { id: 'sunset', name: 'Vice Sunset', fn: gradeSunset },
+  { id: 'neon', name: 'Neon Nights', fn: gradeNeon },
+  { id: 'poster', name: 'Poster Pop', fn: gradePoster },
+  { id: 'golden', name: 'Golden Hour', fn: gradeGolden },
+  { id: 'noir', name: 'Midnight Noir', fn: gradeNoir },
 ];
 
+/** Look a grade up by id; unknown ids mean the original image. */
 export function gradeById(id) {
-  for (const grade of GRADES) {
-    if (grade.id === id) return grade;
-  }
-  return GRADES[0];
+  return GRADES.find((grade) => grade.id === id) ?? GRADES[0];
 }
 
-// imageData: { data: Uint8ClampedArray, width, height }. Mutates in
-// place and returns it. strength 0 leaves the image untouched.
-export function applyGrade(imageData, gradeId, strength) {
-  const grade = gradeById(gradeId);
-  if (gradeId === "none" || strength <= 0) return imageData;
-  const s = Math.min(1, Math.max(0, strength));
-  const d = imageData.data;
-  for (let i = 0; i < d.length; i += 4) {
-    const out = grade.fn(d[i], d[i + 1], d[i + 2]);
-    d[i] = clamp(mix(d[i], out[0], s));
-    d[i + 1] = clamp(mix(d[i + 1], out[1], s));
-    d[i + 2] = clamp(mix(d[i + 2], out[2], s));
+/**
+ * Apply a grade to an ImageData buffer in place. `strength` runs 0..1 and is
+ * the mix between each original pixel and its graded version; at 0 (or with
+ * the Original grade) the buffer is left exactly as it was.
+ */
+export function applyGrade(imageData, grade, strength) {
+  if (!grade || !grade.fn || strength <= 0) return;
+  const mix = Math.min(1, strength);
+  const data = imageData.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const [nr, ng, nb] = grade.fn(r, g, b);
+    data[i] = clamp255(r + (nr - r) * mix);
+    data[i + 1] = clamp255(g + (ng - g) * mix);
+    data[i + 2] = clamp255(b + (nb - b) * mix);
   }
-  return imageData;
 }
